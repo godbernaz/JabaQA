@@ -80,7 +80,7 @@
             padding: 5px 10px;
             border-radius: 0 5px 5px 0;
             justify-content: space-between;
-            z-index: 10;
+            z-index: 4; /* Aba abaixo do cabeçalho da tabela */
             transition: left 0.3s ease; /* Animação para acompanhar a sidebar */
         }
 
@@ -340,6 +340,64 @@
             font-size: 14px;
             color: #999999;
         }
+
+        /* Mensagem de erro */
+        .error-message {
+            color: #e74c3c;
+            font-size: 16px;
+            text-align: center;
+            padding: 20px;
+        }
+
+        /* Tabela de traduções */
+        .translation-table-container {
+            flex: 1;
+            padding: 20px;
+            padding-top: 40px; /* Espaço para a aba de arquivo */
+            overflow-y: auto;
+        }
+
+        .translation-table {
+            width: 100%;
+            border-collapse: collapse;
+            background-color: #1e1e1e;
+            color: white;
+        }
+
+        .translation-table th,
+        .translation-table td {
+            padding: 10px;
+            border: 1px solid #444444;
+            text-align: left;
+            vertical-align: top;
+        }
+
+        .translation-table th {
+            background-color: #2a2a2a;
+            font-weight: 500;
+            position: sticky;
+            top: 0;
+            z-index: 5; /* Cabeçalho acima da aba */
+        }
+
+        .translation-table td {
+            word-wrap: break-word;
+            max-width: 400px; /* Limita a largura para evitar que a tabela fique muito larga */
+        }
+
+        .translation-table tr {
+            display: table-row; /* Garante que a linha seja tratada como uma linha de tabela */
+        }
+
+        .translation-table td:nth-child(1) {
+            width: 50px; /* Coluna do número (#) */
+            text-align: center;
+        }
+
+        .translation-table td:nth-child(2),
+        .translation-table td:nth-child(3) {
+            width: 50%; /* Source e Target dividem o espaço igualmente */
+        }
     </style>
 </head>
 <body>
@@ -403,6 +461,18 @@
                         <p class="upload-info">Supported formats: XLF, TMX.</p>
                     </div>
                 </div>
+                <div class="translation-table-container" id="translationTableContainer" style="display: none;">
+                    <table class="translation-table" id="translationTable">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Source</th>
+                                <th>Target</th>
+                            </tr>
+                        </thead>
+                        <tbody id="translationTableBody"></tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </div>
@@ -446,6 +516,8 @@
         const uploadWrapper = document.getElementById('uploadWrapper');
         const contentHeader = document.getElementById('contentHeader');
         const fileNameSpan = document.getElementById('fileName');
+        const translationTableContainer = document.getElementById('translationTableContainer');
+        const translationTableBody = document.getElementById('translationTableBody');
 
         // Abrir o seletor de arquivos ao clicar em "Browse"
         uploadArea.addEventListener('click', () => {
@@ -477,23 +549,134 @@
 
         function handleFiles(files) {
             if (files.length > 0) {
-                // Mostrar a aba com o nome do primeiro arquivo
-                fileNameSpan.textContent = files[0].name;
+                const file = files[0];
+                // Mostrar a aba com o nome do arquivo
+                fileNameSpan.textContent = file.name;
                 fileTab.style.display = 'flex';
                 // Esconder o cabeçalho e a área de upload
                 contentHeader.style.display = 'none';
                 uploadWrapper.style.display = 'none';
-                // Aqui você pode adicionar a lógica para processar o arquivo no futuro
+                // Mostrar a tabela de traduções
+                translationTableContainer.style.display = 'block';
+
+                // Ler o arquivo
+                const reader = new FileReader();
+                reader.onload = function (e) {
+                    const text = e.target.result;
+                    parseTranslationFile(file.name, text);
+                };
+                reader.onerror = function () {
+                    displayError('Erro ao ler o arquivo. Por favor, tente novamente.');
+                };
+                reader.readAsText(file);
+            }
+        }
+
+        function parseTranslationFile(fileName, text) {
+            try {
+                const parser = new DOMParser();
+                const xmlDoc = parser.parseFromString(text, 'text/xml');
+                const translations = [];
+
+                if (fileName.toLowerCase().endsWith('.tmx')) {
+                    // Processar arquivo TMX
+                    const tus = xmlDoc.getElementsByTagName('tu');
+                    if (tus.length === 0) {
+                        displayError('Nenhum par de tradução encontrado no arquivo TMX.');
+                        return;
+                    }
+                    for (let i = 0; i < tus.length; i++) {
+                        const tu = tus[i];
+                        // Tentar diferentes atributos para a linguagem
+                        const tuvSource = tu.querySelector('tuv[xml\\:lang*="en"] seg') || 
+                                        tu.querySelector('tuv[lang*="en"] seg') || 
+                                        tu.querySelector('tuv seg:first-child');
+                        const tuvTarget = tu.querySelector('tuv[xml\\:lang*="pt"] seg') || 
+                                        tu.querySelector('tuv[lang*="pt"] seg') || 
+                                        tu.querySelector('tuv seg:last-child');
+                        const source = tuvSource ? tuvSource.textContent.trim() : '';
+                        const target = tuvTarget ? tuvTarget.textContent.trim() : '';
+                        if (source || target) { // Só adicionar se houver pelo menos um dos dois
+                            translations.push({ source, target });
+                        }
+                    }
+                } else if (fileName.toLowerCase().endsWith('.xlf')) {
+                    // Processar arquivo XLF
+                    const transUnits = xmlDoc.getElementsByTagName('trans-unit');
+                    if (transUnits.length === 0) {
+                        displayError('Nenhum par de tradução encontrado no arquivo XLF.');
+                        return;
+                    }
+                    for (let i = 0; i < transUnits.length; i++) {
+                        const transUnit = transUnits[i];
+                        const source = transUnit.querySelector('source')?.textContent.trim() || '';
+                        const target = transUnit.querySelector('target')?.textContent.trim() || '';
+                        if (source || target) { // Só adicionar se houver pelo menos um dos dois
+                            translations.push({ source, target });
+                        }
+                    }
+                } else {
+                    displayError('Formato de arquivo não suportado. Use arquivos .tmx ou .xlf.');
+                    return;
+                }
+
+                if (translations.length === 0) {
+                    displayError('Nenhum par de tradução válido encontrado no arquivo.');
+                    return;
+                }
+
+                // Preencher a tabela com os pares de tradução
+                translationTableBody.innerHTML = ''; // Limpar a tabela
+                translations.forEach((translation, index) => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${index + 1}</td>
+                        <td>${translation.source}</td>
+                        <td>${translation.target}</td>
+                    `;
+                    translationTableBody.appendChild(row);
+                });
+
+                // Ajustar a altura das células dinamicamente
+                adjustRowHeights();
+            } catch (error) {
+                console.error('Erro ao parsear o arquivo:', error);
+                displayError('Erro ao processar o arquivo. Verifique se o formato está correto.');
+            }
+        }
+
+        function displayError(message) {
+            translationTableBody.innerHTML = `<tr><td colspan="3" class="error-message">${message}</td></tr>`;
+        }
+
+        function adjustRowHeights() {
+            const rows = translationTableBody.getElementsByTagName('tr');
+            for (let row of rows) {
+                const sourceCell = row.cells[1]; // Source
+                const targetCell = row.cells[2]; // Target
+                // Resetar as alturas para calcular corretamente
+                sourceCell.style.height = 'auto';
+                targetCell.style.height = 'auto';
+                // Obter a altura natural de cada célula
+                const sourceHeight = sourceCell.offsetHeight;
+                const targetHeight = targetCell.offsetHeight;
+                // Definir a altura da linha como a maior entre as duas células
+                const maxHeight = Math.max(sourceHeight, targetHeight);
+                sourceCell.style.height = `${maxHeight}px`;
+                targetCell.style.height = `${maxHeight}px`;
             }
         }
 
         function closeFile() {
             // Limpar o input de arquivo
             fileInput.value = '';
-            // Esconder a aba e mostrar o cabeçalho e a área de upload novamente
+            // Esconder a aba e a tabela, e mostrar o cabeçalho e a área de upload novamente
             fileTab.style.display = 'none';
+            translationTableContainer.style.display = 'none';
             contentHeader.style.display = 'flex';
             uploadWrapper.style.display = 'flex';
+            // Limpar a tabela
+            translationTableBody.innerHTML = '';
         }
     </script>
 </body>
