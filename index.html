@@ -124,6 +124,7 @@
             flex-direction: column;
             gap: 10px;
             transition: width 0.3s ease; /* Animação para minimizar/maximizar */
+            position: relative; /* Para a área de hover */
         }
 
         .sidebar.minimized {
@@ -156,12 +157,17 @@
             transition: margin-right 0.3s ease;
         }
 
+        .sidebar.minimized .sidebar-item {
+            justify-content: center; /* Centraliza o ícone quando minimizado */
+        }
+
         .sidebar.minimized .sidebar-item img {
             margin-right: 0;
         }
 
         .sidebar-item span {
             font-size: 16px;
+            white-space: nowrap; /* Impede que o texto quebre em duas linhas */
             transition: opacity 0.3s ease;
         }
 
@@ -199,16 +205,33 @@
             margin: 10px 0;
         }
 
+        /* Área de hover para o botão de toggle */
+        .sidebar-toggle-area {
+            position: absolute;
+            top: 0;
+            left: 250px; /* Alinhado com a borda da sidebar */
+            width: 20px; /* Largura da área de hover */
+            height: 100%;
+            background: transparent;
+            z-index: 14; /* Abaixo do botão, mas acima do conteúdo */
+            transition: left 0.3s ease;
+        }
+
+        .sidebar.minimized ~ .sidebar-toggle-area {
+            left: 60px; /* Ajusta a posição quando a sidebar está minimizada */
+        }
+
         /* Botão de toggle da sidebar */
         .sidebar-toggle {
             position: absolute;
             top: 50%;
             left: 250px; /* Alinhado com a borda da sidebar */
             transform: translate(-50%, -50%);
-            width: 20px;
-            height: 40px;
+            width: 24px; /* Tamanho circular */
+            height: 24px;
             background-color: #2c3e50;
             border: none;
+            border-radius: 50%; /* Formato circular */
             cursor: pointer;
             display: flex;
             align-items: center;
@@ -218,11 +241,9 @@
             z-index: 15;
         }
 
+        .sidebar:hover ~ .sidebar-toggle,
+        .sidebar-toggle-area:hover ~ .sidebar-toggle,
         .sidebar-toggle:hover {
-            opacity: 1;
-        }
-
-        .content-container:hover .sidebar-toggle {
             opacity: 1;
         }
 
@@ -357,6 +378,9 @@
                     <span>Settings</span>
                 </div>
             </div>
+
+            <!-- Área de hover para o botão de toggle -->
+            <div class="sidebar-toggle-area"></div>
 
             <!-- Botão de toggle da sidebar -->
             <button class="sidebar-toggle" id="sidebarToggle">
