@@ -375,9 +375,7 @@
         .translation-table th {
             background-color: #2a2a2a;
             font-weight: 500;
-            position: sticky;
-            top: 0;
-            z-index: 5; /* Cabeçalho acima da aba */
+            /* Removido o comportamento sticky */
         }
 
         .translation-table td {
@@ -466,8 +464,8 @@
                         <thead>
                             <tr>
                                 <th>#</th>
-                                <th>Source</th>
-                                <th>Target</th>
+                                <th id="sourceHeader">Source</th>
+                                <th id="targetHeader">Target</th>
                             </tr>
                         </thead>
                         <tbody id="translationTableBody"></tbody>
@@ -518,6 +516,8 @@
         const fileNameSpan = document.getElementById('fileName');
         const translationTableContainer = document.getElementById('translationTableContainer');
         const translationTableBody = document.getElementById('translationTableBody');
+        const sourceHeader = document.getElementById('sourceHeader');
+        const targetHeader = document.getElementById('targetHeader');
 
         // Abrir o seletor de arquivos ao clicar em "Browse"
         uploadArea.addEventListener('click', () => {
@@ -577,6 +577,8 @@
                 const parser = new DOMParser();
                 const xmlDoc = parser.parseFromString(text, 'text/xml');
                 const translations = [];
+                let sourceLang = 'Unknown';
+                let targetLang = 'Unknown';
 
                 if (fileName.toLowerCase().endsWith('.tmx')) {
                     // Processar arquivo TMX
@@ -585,34 +587,103 @@
                         displayError('Nenhum par de tradução encontrado no arquivo TMX.');
                         return;
                     }
+
+                    // Extrair idiomas
+                    sourceLang = xmlDoc.querySelector('header')?.getAttribute('srclang')?.toUpperCase() || 'Unknown';
+                    if (sourceLang === '*ALL*') sourceLang = 'Unknown'; // Caso srclang seja '*all*'
+
+                    // Obter o idioma do target a partir do segundo <tuv>
+                    const firstTu = tus[0];
+                    const tuvs = firstTu.getElementsByTagName('tuv');
+                    if (tuvs.length >= 2) {
+                        const sourceTuvLang = (tuvs[0].getAttribute('xml:lang') || tuvs[0].getAttribute('lang') || '').toUpperCase();
+                        const targetTuvLang = (tuvs[1].getAttribute('xml:lang') || tuvs[1].getAttribute('lang') || '').toUpperCase();
+                        if (sourceLang === 'Unknown') sourceLang = sourceTuvLang || 'Unknown';
+                        targetLang = targetTuvLang || 'Unknown';
+                    }
+
                     for (let i = 0; i < tus.length; i++) {
                         const tu = tus[i];
-                        // Tentar diferentes atributos para a linguagem
-                        const tuvSource = tu.querySelector('tuv[xml\\:lang*="en"] seg') || 
-                                        tu.querySelector('tuv[lang*="en"] seg') || 
-                                        tu.querySelector('tuv seg:first-child');
-                        const tuvTarget = tu.querySelector('tuv[xml\\:lang*="pt"] seg') || 
-                                        tu.querySelector('tuv[lang*="pt"] seg') || 
-                                        tu.querySelector('tuv seg:last-child');
-                        const source = tuvSource ? tuvSource.textContent.trim() : '';
-                        const target = tuvTarget ? tuvTarget.textContent.trim() : '';
+                        // Obter todos os <tuv> dentro do <tu>
+                        const tuvs = tu.getElementsByTagName('tuv');
+                        if (tuvs.length < 2) continue; // Pular se não houver pelo menos 2 <tuv>
+
+                        // Determinar dinamicamente qual <tuv> é o source e qual é o target
+                        let sourceTuv, targetTuv;
+                        const sourceLangAttr = xmlDoc.querySelector('header')?.getAttribute('srclang')?.toLowerCase() || '*all*';
+
+                        // O primeiro <tuv> cujo idioma corresponde ao srclang (ou o primeiro, se srclang for '*all*')
+                        for (let j = 0; j < tuvs.length; j++) {
+                            const tuv = tuvs[j];
+                            const lang = (tuv.getAttribute('xml:lang') || tuv.getAttribute('lang') || '').toLowerCase();
+                            if (sourceLangAttr === '*all*' || lang === sourceLangAttr) {
+                                sourceTuv = tuv;
+                            } else {
+                                targetTuv = tuv;
+                            }
+                        }
+
+                        // Se não identificamos o source com base no srclang, assumimos o primeiro como source e o segundo como target
+                        if (!sourceTuv || !targetTuv) {
+                            sourceTuv = tuvs[0];
+                            targetTuv = tuvs[1];
+                        }
+
+                        // Pegar apenas o <seg> diretamente dentro de <tuv>, ignorando <seg> dentro de <prop>
+                        const sourceSeg = sourceTuv.querySelector(':scope > seg');
+                        const targetSeg = targetTuv.querySelector(':scope > seg');
+
+                        const source = sourceSeg ? sourceSeg.textContent.trim() : '';
+                        const target = targetSeg ? targetSeg.textContent.trim() : '';
+
                         if (source || target) { // Só adicionar se houver pelo menos um dos dois
                             translations.push({ source, target });
                         }
                     }
                 } else if (fileName.toLowerCase().endsWith('.xlf')) {
                     // Processar arquivo XLF
-                    const transUnits = xmlDoc.getElementsByTagName('trans-unit');
-                    if (transUnits.length === 0) {
-                        displayError('Nenhum par de tradução encontrado no arquivo XLF.');
-                        return;
+                    // Extrair idiomas
+                    const xliffElement = xmlDoc.querySelector('xliff');
+                    if (xliffElement && xliffElement.getAttribute('version')?.startsWith('2')) {
+                        // XLIFF 2.0
+                        sourceLang = xliffElement.getAttribute('srcLang')?.toUpperCase() || 'Unknown';
+                        targetLang = xliffElement.getAttribute('trgLang')?.toUpperCase() || 'Unknown';
+                    } else {
+                        // XLIFF 1.2
+                        const fileElement = xmlDoc.querySelector('file');
+                        sourceLang = fileElement?.getAttribute('source-language')?.toUpperCase() || 'Unknown';
+                        targetLang = fileElement?.getAttribute('target-language')?.toUpperCase() || 'Unknown';
                     }
-                    for (let i = 0; i < transUnits.length; i++) {
-                        const transUnit = transUnits[i];
-                        const source = transUnit.querySelector('source')?.textContent.trim() || '';
-                        const target = transUnit.querySelector('target')?.textContent.trim() || '';
-                        if (source || target) { // Só adicionar se houver pelo menos um dos dois
-                            translations.push({ source, target });
+
+                    // Tentar XLIFF 2.0 (unit > segment > source/target)
+                    const units = xmlDoc.getElementsByTagName('unit');
+                    if (units.length > 0) {
+                        for (let i = 0; i < units.length; i++) {
+                            const unit = units[i];
+                            const segments = unit.getElementsByTagName('segment');
+                            for (let j = 0; j < segments.length; j++) {
+                                const segment = segments[j];
+                                const source = segment.querySelector('source')?.textContent.trim() || '';
+                                const target = segment.querySelector('target')?.textContent.trim() || '';
+                                if (source || target) { // Só adicionar se houver pelo menos um dos dois
+                                    translations.push({ source, target });
+                                }
+                            }
+                        }
+                    } else {
+                        // Tentar XLIFF 1.2 (trans-unit > source/target)
+                        const transUnits = xmlDoc.getElementsByTagName('trans-unit');
+                        if (transUnits.length === 0) {
+                            displayError('Nenhum par de tradução encontrado no arquivo XLF.');
+                            return;
+                        }
+                        for (let i = 0; i < transUnits.length; i++) {
+                            const transUnit = transUnits[i];
+                            const source = transUnit.querySelector('source')?.textContent.trim() || '';
+                            const target = transUnit.querySelector('target')?.textContent.trim() || '';
+                            if (source || target) { // Só adicionar se houver pelo menos um dos dois
+                                translations.push({ source, target });
+                            }
                         }
                     }
                 } else {
@@ -624,6 +695,10 @@
                     displayError('Nenhum par de tradução válido encontrado no arquivo.');
                     return;
                 }
+
+                // Atualizar os cabeçalhos da tabela com os idiomas
+                sourceHeader.textContent = `Source (${sourceLang})`;
+                targetHeader.textContent = `Target (${targetLang})`;
 
                 // Preencher a tabela com os pares de tradução
                 translationTableBody.innerHTML = ''; // Limpar a tabela
@@ -677,6 +752,9 @@
             uploadWrapper.style.display = 'flex';
             // Limpar a tabela
             translationTableBody.innerHTML = '';
+            // Resetar os cabeçalhos
+            sourceHeader.textContent = 'Source';
+            targetHeader.textContent = 'Target';
         }
     </script>
 </body>
