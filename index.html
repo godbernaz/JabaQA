@@ -396,6 +396,35 @@
         .translation-table td:nth-child(3) {
             width: 50%; /* Source e Target dividem o espaço igualmente */
         }
+
+        /* Estilo para a célula da coluna Target */
+        .target-cell {
+            cursor: pointer;
+            position: relative;
+        }
+
+        .target-cell:hover {
+            background-color: #2a2a2a;
+        }
+
+        .target-cell textarea {
+            width: 100%;
+            height: 100%;
+            min-height: 50px;
+            background-color: #2a2a2a;
+            color: white;
+            border: 1px solid #444444;
+            padding: 5px;
+            resize: none;
+            font-family: inherit;
+            font-size: inherit;
+            box-sizing: border-box;
+        }
+
+        .target-cell textarea:focus {
+            outline: none;
+            border-color: #007bff;
+        }
     </style>
 </head>
 <body>
@@ -519,6 +548,9 @@
         const sourceHeader = document.getElementById('sourceHeader');
         const targetHeader = document.getElementById('targetHeader');
 
+        // Armazenar as traduções para edição
+        let translationsData = [];
+
         // Abrir o seletor de arquivos ao clicar em "Browse"
         uploadArea.addEventListener('click', () => {
             fileInput.click();
@@ -576,7 +608,7 @@
             try {
                 const parser = new DOMParser();
                 const xmlDoc = parser.parseFromString(text, 'text/xml');
-                const translations = [];
+                translationsData = []; // Limpar o array de traduções
                 let sourceLang = 'Unknown';
                 let targetLang = 'Unknown';
 
@@ -637,7 +669,7 @@
                         const target = targetSeg ? targetSeg.textContent.trim() : '';
 
                         if (source || target) { // Só adicionar se houver pelo menos um dos dois
-                            translations.push({ source, target });
+                            translationsData.push({ source, target });
                         }
                     }
                 } else if (fileName.toLowerCase().endsWith('.xlf')) {
@@ -666,7 +698,7 @@
                                 const source = segment.querySelector('source')?.textContent.trim() || '';
                                 const target = segment.querySelector('target')?.textContent.trim() || '';
                                 if (source || target) { // Só adicionar se houver pelo menos um dos dois
-                                    translations.push({ source, target });
+                                    translationsData.push({ source, target });
                                 }
                             }
                         }
@@ -682,7 +714,7 @@
                             const source = transUnit.querySelector('source')?.textContent.trim() || '';
                             const target = transUnit.querySelector('target')?.textContent.trim() || '';
                             if (source || target) { // Só adicionar se houver pelo menos um dos dois
-                                translations.push({ source, target });
+                                translationsData.push({ source, target });
                             }
                         }
                     }
@@ -691,7 +723,7 @@
                     return;
                 }
 
-                if (translations.length === 0) {
+                if (translationsData.length === 0) {
                     displayError('Nenhum par de tradução válido encontrado no arquivo.');
                     return;
                 }
@@ -701,16 +733,7 @@
                 targetHeader.textContent = `Target (${targetLang})`;
 
                 // Preencher a tabela com os pares de tradução
-                translationTableBody.innerHTML = ''; // Limpar a tabela
-                translations.forEach((translation, index) => {
-                    const row = document.createElement('tr');
-                    row.innerHTML = `
-                        <td>${index + 1}</td>
-                        <td>${translation.source}</td>
-                        <td>${translation.target}</td>
-                    `;
-                    translationTableBody.appendChild(row);
-                });
+                renderTable();
 
                 // Ajustar a altura das células dinamicamente
                 adjustRowHeights();
@@ -718,6 +741,47 @@
                 console.error('Erro ao parsear o arquivo:', error);
                 displayError('Erro ao processar o arquivo. Verifique se o formato está correto.');
             }
+        }
+
+        function renderTable() {
+            translationTableBody.innerHTML = ''; // Limpar a tabela
+            translationsData.forEach((translation, index) => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${index + 1}</td>
+                    <td>${translation.source}</td>
+                    <td class="target-cell" data-index="${index}">${translation.target}</td>
+                `;
+                translationTableBody.appendChild(row);
+
+                // Adicionar evento de clique para a célula Target
+                const targetCell = row.querySelector('.target-cell');
+                targetCell.addEventListener('click', (e) => {
+                    const currentText = e.target.textContent;
+                    const textarea = document.createElement('textarea');
+                    textarea.value = currentText;
+                    e.target.innerHTML = '';
+                    e.target.appendChild(textarea);
+                    textarea.focus();
+
+                    // Atualizar o texto quando o usuário terminar de editar
+                    textarea.addEventListener('blur', () => {
+                        const newText = textarea.value;
+                        const index = e.target.getAttribute('data-index');
+                        translationsData[index].target = newText;
+                        e.target.textContent = newText;
+                        adjustRowHeights(); // Ajustar a altura após a edição
+                    });
+
+                    // Permitir que o Enter também salve a edição
+                    textarea.addEventListener('keypress', (event) => {
+                        if (event.key === 'Enter' && !event.shiftKey) {
+                            event.preventDefault();
+                            textarea.blur();
+                        }
+                    });
+                });
+            });
         }
 
         function displayError(message) {
@@ -750,8 +814,9 @@
             translationTableContainer.style.display = 'none';
             contentHeader.style.display = 'flex';
             uploadWrapper.style.display = 'flex';
-            // Limpar a tabela
+            // Limpar a tabela e os dados
             translationTableBody.innerHTML = '';
+            translationsData = [];
             // Resetar os cabeçalhos
             sourceHeader.textContent = 'Source';
             targetHeader.textContent = 'Target';
