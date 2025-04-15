@@ -193,6 +193,53 @@
             z-index: 20;
         }
 
+        /* Estilo para o item do arquivo atual na sidebar */
+        .sidebar-file {
+            display: flex;
+            align-items: center;
+            padding: 8px 10px;
+            margin-left: 34px; /* Alinhado com o texto de "Quality Assurance", considerando o ícone */
+            border-radius: 5px;
+            background-color: #2a2a2a;
+            transition: max-height 0.3s ease, opacity 0.3s ease, padding 0.3s ease;
+            max-height: 40px; /* Altura máxima quando visível */
+            opacity: 1;
+            overflow: hidden;
+        }
+
+        .sidebar-file.hidden {
+            max-height: 0;
+            opacity: 0;
+            padding: 0 10px;
+        }
+
+        .sidebar-file span {
+            font-size: 14px;
+            color: #cccccc;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            flex: 1;
+        }
+
+        .sidebar-file .save-icon {
+            width: 16px;
+            height: 16px;
+            margin-left: 10px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            border-radius: 50%;
+            padding: 4px;
+        }
+
+        .sidebar-file .save-icon:hover {
+            background-color: #444444;
+        }
+
+        .sidebar.minimized .sidebar-file {
+            display: none; /* Esconder o item do arquivo quando a sidebar está minimizada */
+        }
+
         /* Separador */
         .sidebar-separator {
             height: 1px;
@@ -375,12 +422,13 @@
         .translation-table th {
             background-color: #2a2a2a;
             font-weight: 500;
-            /* Removido o comportamento sticky */
         }
 
         .translation-table td {
             word-wrap: break-word;
             max-width: 400px; /* Limita a largura para evitar que a tabela fique muito larga */
+            min-height: 50px; /* Ensure a minimum height for consistency */
+            line-height: 1.5; /* Consistent line height for text */
         }
 
         .translation-table tr {
@@ -394,7 +442,18 @@
 
         .translation-table td:nth-child(2),
         .translation-table td:nth-child(3) {
-            width: 50%; /* Source e Target dividem o espaço igualmente */
+            width: 35%; /* Source e Target dividem menos espaço para acomodar a nova coluna */
+        }
+
+        .translation-table td:nth-child(4) {
+            width: 30%; /* Coluna Quality Assurance */
+            background-color: #252525; /* Fundo ligeiramente diferente */
+            vertical-align: middle; /* Centralizar o conteúdo */
+            text-align: center;
+        }
+
+        .translation-table th:nth-child(4) {
+            background-color: #2a2a2a;
         }
 
         /* Estilo para a célula da coluna Target */
@@ -409,8 +468,6 @@
 
         .target-cell textarea {
             width: 100%;
-            height: 100%;
-            min-height: 50px;
             background-color: #2a2a2a;
             color: white;
             border: 1px solid #444444;
@@ -419,6 +476,7 @@
             font-family: inherit;
             font-size: inherit;
             box-sizing: border-box;
+            line-height: 1.5; /* Match the line height of the text */
         }
 
         .target-cell textarea:focus {
@@ -452,6 +510,11 @@
                 <div class="sidebar-item active" data-tooltip="Quality Assurance">
                     <img src="assets/quality_icon.png" alt="Quality Assurance Icon">
                     <span>Quality Assurance</span>
+                </div>
+                <!-- Elemento para o arquivo atual -->
+                <div class="sidebar-file hidden" id="currentFile">
+                    <span id="currentFileName"></span>
+                    <img src="assets/save_icon.png" alt="Save Icon" class="save-icon" title="Save changes">
                 </div>
                 <div class="sidebar-item" data-tooltip="Projects">
                     <img src="assets/project_icon.png" alt="Projects Icon">
@@ -495,6 +558,7 @@
                                 <th>#</th>
                                 <th id="sourceHeader">Source</th>
                                 <th id="targetHeader">Target</th>
+                                <th id="qaHeader">Quality Assurance</th>
                             </tr>
                         </thead>
                         <tbody id="translationTableBody"></tbody>
@@ -524,6 +588,8 @@
         const sidebarToggle = document.getElementById('sidebarToggle');
         const toggleIcon = document.getElementById('toggleIcon');
         const fileTab = document.getElementById('fileTab');
+        const currentFile = document.getElementById('currentFile');
+        const currentFileName = document.getElementById('currentFileName');
 
         sidebarToggle.addEventListener('click', () => {
             sidebar.classList.toggle('minimized');
@@ -585,6 +651,9 @@
                 // Mostrar a aba com o nome do arquivo
                 fileNameSpan.textContent = file.name;
                 fileTab.style.display = 'flex';
+                // Mostrar o nome do arquivo na sidebar
+                currentFileName.textContent = file.name;
+                currentFile.classList.remove('hidden');
                 // Esconder o cabeçalho e a área de upload
                 contentHeader.style.display = 'none';
                 uploadWrapper.style.display = 'none';
@@ -745,47 +814,53 @@
 
         function renderTable() {
             translationTableBody.innerHTML = ''; // Limpar a tabela
+            // Render the rows for Source and Target
             translationsData.forEach((translation, index) => {
                 const row = document.createElement('tr');
                 row.innerHTML = `
                     <td>${index + 1}</td>
                     <td>${translation.source}</td>
                     <td class="target-cell" data-index="${index}">${translation.target}</td>
+                    ${index === 0 ? '<td rowspan="' + translationsData.length + '" class="qa-cell">AI Evaluation Output Placeholder</td>' : ''}
                 `;
                 translationTableBody.appendChild(row);
 
                 // Adicionar evento de clique para a célula Target
                 const targetCell = row.querySelector('.target-cell');
-                targetCell.addEventListener('click', (e) => {
-                    const currentText = e.target.textContent;
-                    const textarea = document.createElement('textarea');
-                    textarea.value = currentText;
-                    e.target.innerHTML = '';
-                    e.target.appendChild(textarea);
-                    textarea.focus();
+                if (targetCell) {
+                    targetCell.addEventListener('click', (e) => {
+                        const currentText = e.target.textContent;
+                        const textarea = document.createElement('textarea');
+                        textarea.value = currentText;
+                        const rowHeight = row.dataset.height || '50';
+                        textarea.style.height = `${rowHeight}px`;
+                        e.target.innerHTML = '';
+                        e.target.appendChild(textarea);
+                        textarea.focus();
 
-                    // Atualizar o texto quando o usuário terminar de editar
-                    textarea.addEventListener('blur', () => {
-                        const newText = textarea.value;
-                        const index = e.target.getAttribute('data-index');
-                        translationsData[index].target = newText;
-                        e.target.textContent = newText;
-                        adjustRowHeights(); // Ajustar a altura após a edição
-                    });
+                        textarea.addEventListener('blur', () => {
+                            const newText = textarea.value;
+                            const index = e.target.getAttribute('data-index');
+                            translationsData[index].target = newText;
+                            e.target.textContent = newText;
+                            adjustRowHeights();
+                        });
 
-                    // Permitir que o Enter também salve a edição
-                    textarea.addEventListener('keypress', (event) => {
-                        if (event.key === 'Enter' && !event.shiftKey) {
-                            event.preventDefault();
-                            textarea.blur();
-                        }
+                        textarea.addEventListener('keypress', (event) => {
+                            if (event.key === 'Enter' && !event.shiftKey) {
+                                event.preventDefault();
+                                textarea.blur();
+                            }
+                        });
                     });
-                });
+                }
             });
+
+            adjustRowHeights(); // Ajustar a altura após renderizar
         }
 
         function displayError(message) {
-            translationTableBody.innerHTML = `<tr><td colspan="3" class="error-message">${message}</td></tr>`;
+            translationTableBody.innerHTML = `<tr><td colspan="4" class="error-message">${message}</td></tr>`;
         }
 
         function adjustRowHeights() {
@@ -793,16 +868,20 @@
             for (let row of rows) {
                 const sourceCell = row.cells[1]; // Source
                 const targetCell = row.cells[2]; // Target
-                // Resetar as alturas para calcular corretamente
+                // Reset heights to calculate natural height
+                row.style.height = 'auto'; // Reset row height
                 sourceCell.style.height = 'auto';
                 targetCell.style.height = 'auto';
-                // Obter a altura natural de cada célula
+                // Get the natural height of each cell
                 const sourceHeight = sourceCell.offsetHeight;
                 const targetHeight = targetCell.offsetHeight;
-                // Definir a altura da linha como a maior entre as duas células
+                // Set the row height to the maximum of the two cells
                 const maxHeight = Math.max(sourceHeight, targetHeight);
+                row.style.height = `${maxHeight}px`; // Set the row height explicitly
                 sourceCell.style.height = `${maxHeight}px`;
                 targetCell.style.height = `${maxHeight}px`;
+                // Store the height in the row for use during editing
+                row.dataset.height = maxHeight;
             }
         }
 
@@ -811,6 +890,7 @@
             fileInput.value = '';
             // Esconder a aba e a tabela, e mostrar o cabeçalho e a área de upload novamente
             fileTab.style.display = 'none';
+            currentFile.classList.add('hidden');
             translationTableContainer.style.display = 'none';
             contentHeader.style.display = 'flex';
             uploadWrapper.style.display = 'flex';
