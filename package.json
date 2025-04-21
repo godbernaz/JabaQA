@@ -19,6 +19,9 @@
   },
   "homepage": "https://github.com/godbernaz/JabaQA#readme",
   "devDependencies": {
-    "electron": "^latest"
+    "electron": "31.0.0"
+  },
+  "dependencies": {
+    "python-shell": "^5.0.0"
   }
 }
