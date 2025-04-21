@@ -73,15 +73,15 @@
         .file-tab {
             position: absolute;
             top: 40px;
-            left: 250px; /* Largura inicial da sidebar */
+            left: 250px;
             display: flex;
             align-items: center;
             background-color: #2a2a2a;
             padding: 5px 10px;
             border-radius: 0 5px 5px 0;
             justify-content: space-between;
-            z-index: 4; /* Aba abaixo do cabeçalho da tabela */
-            transition: left 0.3s ease; /* Animação para acompanhar a sidebar */
+            z-index: 4;
+            transition: left 0.3s ease;
         }
 
         .file-tab span {
@@ -111,7 +111,7 @@
             display: flex;
             flex: 1;
             overflow: hidden;
-            position: relative; /* Para posicionar o botão de toggle */
+            position: relative;
         }
 
         /* Sidebar */
@@ -123,12 +123,12 @@
             display: flex;
             flex-direction: column;
             gap: 10px;
-            transition: width 0.3s ease; /* Animação para minimizar/maximizar */
-            position: relative; /* Para a área de hover */
+            transition: width 0.3s ease;
+            position: relative;
         }
 
         .sidebar.minimized {
-            width: 60px; /* Apenas o espaço para os ícones */
+            width: 60px;
             padding: 20px 10px;
         }
 
@@ -139,7 +139,7 @@
             border-radius: 5px;
             cursor: pointer;
             transition: background-color 0.3s;
-            position: relative; /* Para o tooltip */
+            position: relative;
         }
 
         .sidebar-item:hover {
@@ -158,7 +158,7 @@
         }
 
         .sidebar.minimized .sidebar-item {
-            justify-content: center; /* Centraliza o ícone quando minimizado */
+            justify-content: center;
         }
 
         .sidebar.minimized .sidebar-item img {
@@ -167,21 +167,20 @@
 
         .sidebar-item span {
             font-size: 16px;
-            white-space: nowrap; /* Impede que o texto quebre em duas linhas */
+            white-space: nowrap;
             transition: opacity 0.3s ease;
         }
 
         .sidebar.minimized .sidebar-item span {
             opacity: 0;
             position: absolute;
-            left: -9999px; /* Esconder o texto quando minimizado */
+            left: -9999px;
         }
 
-        /* Tooltip para o nome da categoria quando minimizado */
         .sidebar.minimized .sidebar-item:hover::after {
             content: attr(data-tooltip);
             position: absolute;
-            left: 60px; /* Aparece à direita do ícone */
+            left: 60px;
             top: 50%;
             transform: translateY(-50%);
             background-color: #333333;
@@ -193,16 +192,15 @@
             z-index: 20;
         }
 
-        /* Estilo para o item do arquivo atual na sidebar */
         .sidebar-file {
             display: flex;
             align-items: center;
             padding: 8px 10px;
-            margin-left: 34px; /* Alinhado com o texto de "Quality Assurance", considerando o ícone */
+            margin-left: 34px;
             border-radius: 5px;
             background-color: #2a2a2a;
             transition: max-height 0.3s ease, opacity 0.3s ease, padding 0.3s ease;
-            max-height: 40px; /* Altura máxima quando visível */
+            max-height: 40px;
             opacity: 1;
             overflow: hidden;
         }
@@ -237,10 +235,9 @@
         }
 
         .sidebar.minimized .sidebar-file {
-            display: none; /* Esconder o item do arquivo quando a sidebar está minimizada */
+            display: none;
         }
 
-        /* Separador */
         .sidebar-separator {
             height: 1px;
             background-color: #444444;
@@ -252,33 +249,31 @@
             margin: 10px 0;
         }
 
-        /* Área de hover para o botão de toggle */
         .sidebar-toggle-area {
             position: absolute;
             top: 0;
-            left: 250px; /* Alinhado com a borda da sidebar */
-            width: 20px; /* Largura da área de hover */
+            left: 250px;
+            width: 20px;
             height: 100%;
             background: transparent;
-            z-index: 14; /* Abaixo do botão, mas acima do conteúdo */
+            z-index: 14;
             transition: left 0.3s ease;
         }
 
         .sidebar.minimized ~ .sidebar-toggle-area {
-            left: 60px; /* Ajusta a posição quando a sidebar está minimizada */
+            left: 60px;
         }
 
-        /* Botão de toggle da sidebar */
         .sidebar-toggle {
             position: absolute;
             top: 50%;
-            left: 250px; /* Alinhado com a borda da sidebar */
+            left: 250px;
             transform: translate(-50%, -50%);
-            width: 24px; /* Tamanho circular */
+            width: 24px;
             height: 24px;
             background-color: #2c3e50;
             border: none;
-            border-radius: 50%; /* Formato circular */
+            border-radius: 50%;
             cursor: pointer;
             display: flex;
             align-items: center;
@@ -295,7 +290,7 @@
         }
 
         .sidebar.minimized ~ .sidebar-toggle {
-            left: 60px; /* Ajusta a posição quando a sidebar está minimizada */
+            left: 60px;
         }
 
         .sidebar-toggle img {
@@ -331,7 +326,6 @@
             max-width: 600px;
         }
 
-        /* Container para centralizar o upload */
         .upload-wrapper {
             flex: 1;
             display: flex;
@@ -341,7 +335,6 @@
             gap: 10px;
         }
 
-        /* Área de upload */
         .upload-container {
             background-color: #1e1e1e;
             border-radius: 8px;
@@ -388,7 +381,6 @@
             color: #999999;
         }
 
-        /* Mensagem de erro */
         .error-message {
             color: #e74c3c;
             font-size: 16px;
@@ -396,12 +388,12 @@
             padding: 20px;
         }
 
-        /* Tabela de traduções */
         .translation-table-container {
             flex: 1;
             padding: 20px;
-            padding-top: 40px; /* Espaço para a aba de arquivo */
+            padding-top: 40px;
             overflow-y: auto;
+            overflow-x: auto; /* Permitir rolagem horizontal */
         }
 
         .translation-table {
@@ -426,37 +418,38 @@
 
         .translation-table td {
             word-wrap: break-word;
-            max-width: 400px; /* Limita a largura para evitar que a tabela fique muito larga */
-            min-height: 50px; /* Ensure a minimum height for consistency */
-            line-height: 1.5; /* Consistent line height for text */
+            max-width: 400px;
+            min-height: 50px;
+            line-height: 1.5;
         }
 
         .translation-table tr {
-            display: table-row; /* Garante que a linha seja tratada como uma linha de tabela */
+            display: table-row;
         }
 
         .translation-table td:nth-child(1) {
-            width: 50px; /* Coluna do número (#) */
+            width: 50px;
             text-align: center;
         }
 
         .translation-table td:nth-child(2),
-        .translation-table td:nth-child(3) {
-            width: 35%; /* Source e Target dividem menos espaço para acomodar a nova coluna */
-        }
-
+        .translation-table td:nth-child(3),
         .translation-table td:nth-child(4) {
-            width: 30%; /* Coluna Quality Assurance */
-            background-color: #252525; /* Fundo ligeiramente diferente */
-            vertical-align: middle; /* Centralizar o conteúdo */
-            text-align: center;
+            width: 25%; /* Source, Target e Ref */
         }
 
-        .translation-table th:nth-child(4) {
+        .translation-table td:nth-child(5) {
+            width: 25%; /* Quality Assurance */
+            background-color: #252525;
+            vertical-align: top; /* Alinhar ao topo */
+            text-align: center;
+            padding-top: 10px; /* Espaçamento superior */
+        }
+
+        .translation-table th:nth-child(5) {
             background-color: #2a2a2a;
         }
 
-        /* Estilo para a célula da coluna Target */
         .target-cell {
             cursor: pointer;
             position: relative;
@@ -476,7 +469,7 @@
             font-family: inherit;
             font-size: inherit;
             box-sizing: border-box;
-            line-height: 1.5; /* Match the line height of the text */
+            line-height: 1.5;
         }
 
         .target-cell textarea:focus {
@@ -487,7 +480,6 @@
 </head>
 <body>
     <div class="app-container">
-        <!-- Barra de título personalizada -->
         <div class="titlebar">
             <h1>JabaQA</h1>
             <div class="titlebar-buttons">
@@ -497,21 +489,17 @@
             </div>
         </div>
 
-        <!-- Aba de arquivo -->
         <div class="file-tab" id="fileTab" style="display: none;">
             <span id="fileName"></span>
             <button onclick="closeFile()">×</button>
         </div>
 
-        <!-- Container para sidebar e conteúdo -->
         <div class="content-container">
-            <!-- Sidebar -->
             <div class="sidebar" id="sidebar">
                 <div class="sidebar-item active" data-tooltip="Quality Assurance">
                     <img src="assets/quality_icon.png" alt="Quality Assurance Icon">
                     <span>Quality Assurance</span>
                 </div>
-                <!-- Elemento para o arquivo atual -->
                 <div class="sidebar-file hidden" id="currentFile">
                     <span id="currentFileName"></span>
                     <img src="assets/save_icon.png" alt="Save Icon" class="save-icon" title="Save changes">
@@ -527,15 +515,12 @@
                 </div>
             </div>
 
-            <!-- Área de hover para o botão de toggle -->
             <div class="sidebar-toggle-area"></div>
 
-            <!-- Botão de toggle da sidebar -->
             <button class="sidebar-toggle" id="sidebarToggle">
                 <img src="assets/arrow_left.png" alt="Toggle Sidebar" id="toggleIcon">
             </button>
 
-            <!-- Main Content -->
             <div class="main-content">
                 <div class="content-header" id="contentHeader">
                     <h1>Quality Assurance</h1>
@@ -558,6 +543,7 @@
                                 <th>#</th>
                                 <th id="sourceHeader">Source</th>
                                 <th id="targetHeader">Target</th>
+                                <th id="refHeader">Ref</th>
                                 <th id="qaHeader">Quality Assurance</th>
                             </tr>
                         </thead>
@@ -583,7 +569,6 @@
             ipcRenderer.send('close-window');
         }
 
-        // Funcionalidade de toggle da sidebar
         const sidebar = document.getElementById('sidebar');
         const sidebarToggle = document.getElementById('sidebarToggle');
         const toggleIcon = document.getElementById('toggleIcon');
@@ -595,14 +580,13 @@
             sidebar.classList.toggle('minimized');
             if (sidebar.classList.contains('minimized')) {
                 toggleIcon.src = 'assets/arrow_right.png';
-                fileTab.style.left = '60px'; // Ajusta a posição da aba quando minimizado
+                fileTab.style.left = '60px';
             } else {
                 toggleIcon.src = 'assets/arrow_left.png';
-                fileTab.style.left = '250px'; // Volta à posição original
+                fileTab.style.left = '250px';
             }
         });
 
-        // Funcionalidade de upload
         const uploadArea = document.getElementById('uploadArea');
         const fileInput = document.getElementById('fileInput');
         const uploadContainer = document.getElementById('uploadContainer');
@@ -614,15 +598,12 @@
         const sourceHeader = document.getElementById('sourceHeader');
         const targetHeader = document.getElementById('targetHeader');
 
-        // Armazenar as traduções para edição
         let translationsData = [];
 
-        // Abrir o seletor de arquivos ao clicar em "Browse"
         uploadArea.addEventListener('click', () => {
             fileInput.click();
         });
 
-        // Suporte para drag and drop
         uploadArea.addEventListener('dragover', (e) => {
             e.preventDefault();
             uploadArea.style.backgroundColor = '#333333';
@@ -640,7 +621,6 @@
             handleFiles(files);
         });
 
-        // Atualizar o estado ao selecionar arquivos
         fileInput.addEventListener('change', () => {
             handleFiles(fileInput.files);
         });
@@ -648,19 +628,14 @@
         function handleFiles(files) {
             if (files.length > 0) {
                 const file = files[0];
-                // Mostrar a aba com o nome do arquivo
                 fileNameSpan.textContent = file.name;
                 fileTab.style.display = 'flex';
-                // Mostrar o nome do arquivo na sidebar
                 currentFileName.textContent = file.name;
                 currentFile.classList.remove('hidden');
-                // Esconder o cabeçalho e a área de upload
                 contentHeader.style.display = 'none';
                 uploadWrapper.style.display = 'none';
-                // Mostrar a tabela de traduções
                 translationTableContainer.style.display = 'block';
 
-                // Ler o arquivo
                 const reader = new FileReader();
                 reader.onload = function (e) {
                     const text = e.target.result;
@@ -677,23 +652,20 @@
             try {
                 const parser = new DOMParser();
                 const xmlDoc = parser.parseFromString(text, 'text/xml');
-                translationsData = []; // Limpar o array de traduções
+                translationsData = [];
                 let sourceLang = 'Unknown';
                 let targetLang = 'Unknown';
 
                 if (fileName.toLowerCase().endsWith('.tmx')) {
-                    // Processar arquivo TMX
                     const tus = xmlDoc.getElementsByTagName('tu');
                     if (tus.length === 0) {
                         displayError('Nenhum par de tradução encontrado no arquivo TMX.');
                         return;
                     }
 
-                    // Extrair idiomas
                     sourceLang = xmlDoc.querySelector('header')?.getAttribute('srclang')?.toUpperCase() || 'Unknown';
-                    if (sourceLang === '*ALL*') sourceLang = 'Unknown'; // Caso srclang seja '*all*'
+                    if (sourceLang === '*ALL*') sourceLang = 'Unknown';
 
-                    // Obter o idioma do target a partir do segundo <tuv>
                     const firstTu = tus[0];
                     const tuvs = firstTu.getElementsByTagName('tuv');
                     if (tuvs.length >= 2) {
@@ -705,15 +677,12 @@
 
                     for (let i = 0; i < tus.length; i++) {
                         const tu = tus[i];
-                        // Obter todos os <tuv> dentro do <tu>
                         const tuvs = tu.getElementsByTagName('tuv');
-                        if (tuvs.length < 2) continue; // Pular se não houver pelo menos 2 <tuv>
+                        if (tuvs.length < 2) continue;
 
-                        // Determinar dinamicamente qual <tuv> é o source e qual é o target
                         let sourceTuv, targetTuv;
                         const sourceLangAttr = xmlDoc.querySelector('header')?.getAttribute('srclang')?.toLowerCase() || '*all*';
 
-                        // O primeiro <tuv> cujo idioma corresponde ao srclang (ou o primeiro, se srclang for '*all*')
                         for (let j = 0; j < tuvs.length; j++) {
                             const tuv = tuvs[j];
                             const lang = (tuv.getAttribute('xml:lang') || tuv.getAttribute('lang') || '').toLowerCase();
@@ -724,39 +693,32 @@
                             }
                         }
 
-                        // Se não identificamos o source com base no srclang, assumimos o primeiro como source e o segundo como target
                         if (!sourceTuv || !targetTuv) {
                             sourceTuv = tuvs[0];
                             targetTuv = tuvs[1];
                         }
 
-                        // Pegar apenas o <seg> diretamente dentro de <tuv>, ignorando <seg> dentro de <prop>
                         const sourceSeg = sourceTuv.querySelector(':scope > seg');
                         const targetSeg = targetTuv.querySelector(':scope > seg');
 
                         const source = sourceSeg ? sourceSeg.textContent.trim() : '';
                         const target = targetSeg ? targetSeg.textContent.trim() : '';
 
-                        if (source || target) { // Só adicionar se houver pelo menos um dos dois
+                        if (source || target) {
                             translationsData.push({ source, target });
                         }
                     }
                 } else if (fileName.toLowerCase().endsWith('.xlf')) {
-                    // Processar arquivo XLF
-                    // Extrair idiomas
                     const xliffElement = xmlDoc.querySelector('xliff');
                     if (xliffElement && xliffElement.getAttribute('version')?.startsWith('2')) {
-                        // XLIFF 2.0
                         sourceLang = xliffElement.getAttribute('srcLang')?.toUpperCase() || 'Unknown';
                         targetLang = xliffElement.getAttribute('trgLang')?.toUpperCase() || 'Unknown';
                     } else {
-                        // XLIFF 1.2
                         const fileElement = xmlDoc.querySelector('file');
                         sourceLang = fileElement?.getAttribute('source-language')?.toUpperCase() || 'Unknown';
                         targetLang = fileElement?.getAttribute('target-language')?.toUpperCase() || 'Unknown';
                     }
 
-                    // Tentar XLIFF 2.0 (unit > segment > source/target)
                     const units = xmlDoc.getElementsByTagName('unit');
                     if (units.length > 0) {
                         for (let i = 0; i < units.length; i++) {
@@ -766,13 +728,12 @@
                                 const segment = segments[j];
                                 const source = segment.querySelector('source')?.textContent.trim() || '';
                                 const target = segment.querySelector('target')?.textContent.trim() || '';
-                                if (source || target) { // Só adicionar se houver pelo menos um dos dois
+                                if (source || target) {
                                     translationsData.push({ source, target });
                                 }
                             }
                         }
                     } else {
-                        // Tentar XLIFF 1.2 (trans-unit > source/target)
                         const transUnits = xmlDoc.getElementsByTagName('trans-unit');
                         if (transUnits.length === 0) {
                             displayError('Nenhum par de tradução encontrado no arquivo XLF.');
@@ -782,7 +743,7 @@
                             const transUnit = transUnits[i];
                             const source = transUnit.querySelector('source')?.textContent.trim() || '';
                             const target = transUnit.querySelector('target')?.textContent.trim() || '';
-                            if (source || target) { // Só adicionar se houver pelo menos um dos dois
+                            if (source || target) {
                                 translationsData.push({ source, target });
                             }
                         }
@@ -797,14 +758,10 @@
                     return;
                 }
 
-                // Atualizar os cabeçalhos da tabela com os idiomas
                 sourceHeader.textContent = `Source (${sourceLang})`;
                 targetHeader.textContent = `Target (${targetLang})`;
 
-                // Preencher a tabela com os pares de tradução
                 renderTable();
-
-                // Ajustar a altura das células dinamicamente
                 adjustRowHeights();
             } catch (error) {
                 console.error('Erro ao parsear o arquivo:', error);
@@ -813,19 +770,18 @@
         }
 
         function renderTable() {
-            translationTableBody.innerHTML = ''; // Limpar a tabela
-            // Render the rows for Source and Target
+            translationTableBody.innerHTML = '';
             translationsData.forEach((translation, index) => {
                 const row = document.createElement('tr');
                 row.innerHTML = `
                     <td>${index + 1}</td>
                     <td>${translation.source}</td>
                     <td class="target-cell" data-index="${index}">${translation.target}</td>
+                    <td>Ref Placeholder</td>
                     ${index === 0 ? '<td rowspan="' + translationsData.length + '" class="qa-cell">AI Evaluation Output Placeholder</td>' : ''}
                 `;
                 translationTableBody.appendChild(row);
 
-                // Adicionar evento de clique para a célula Target
                 const targetCell = row.querySelector('.target-cell');
                 if (targetCell) {
                     targetCell.addEventListener('click', (e) => {
@@ -856,48 +812,44 @@
                 }
             });
 
-            adjustRowHeights(); // Ajustar a altura após renderizar
+            adjustRowHeights();
         }
 
         function displayError(message) {
-            translationTableBody.innerHTML = `<tr><td colspan="4" class="error-message">${message}</td></tr>`;
+            translationTableBody.innerHTML = `<tr><td colspan="5" class="error-message">${message}</td></tr>`;
         }
 
         function adjustRowHeights() {
             const rows = translationTableBody.getElementsByTagName('tr');
             for (let row of rows) {
-                const sourceCell = row.cells[1]; // Source
-                const targetCell = row.cells[2]; // Target
-                // Reset heights to calculate natural height
-                row.style.height = 'auto'; // Reset row height
+                const sourceCell = row.cells[1];
+                const targetCell = row.cells[2];
+                const refCell = row.cells[3];
+                row.style.height = 'auto';
                 sourceCell.style.height = 'auto';
                 targetCell.style.height = 'auto';
-                // Get the natural height of each cell
+                refCell.style.height = 'auto';
                 const sourceHeight = sourceCell.offsetHeight;
                 const targetHeight = targetCell.offsetHeight;
-                // Set the row height to the maximum of the two cells
-                const maxHeight = Math.max(sourceHeight, targetHeight);
-                row.style.height = `${maxHeight}px`; // Set the row height explicitly
+                const refHeight = refCell.offsetHeight;
+                const maxHeight = Math.max(sourceHeight, targetHeight, refHeight);
+                row.style.height = `${maxHeight}px`;
                 sourceCell.style.height = `${maxHeight}px`;
                 targetCell.style.height = `${maxHeight}px`;
-                // Store the height in the row for use during editing
+                refCell.style.height = `${maxHeight}px`;
                 row.dataset.height = maxHeight;
             }
         }
 
         function closeFile() {
-            // Limpar o input de arquivo
             fileInput.value = '';
-            // Esconder a aba e a tabela, e mostrar o cabeçalho e a área de upload novamente
             fileTab.style.display = 'none';
             currentFile.classList.add('hidden');
             translationTableContainer.style.display = 'none';
             contentHeader.style.display = 'flex';
             uploadWrapper.style.display = 'flex';
-            // Limpar a tabela e os dados
             translationTableBody.innerHTML = '';
             translationsData = [];
-            // Resetar os cabeçalhos
             sourceHeader.textContent = 'Source';
             targetHeader.textContent = 'Target';
         }
