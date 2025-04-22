@@ -50,6 +50,7 @@ function createWindow() {
                 pyshell.send(JSON.stringify(data));
 
                 pyshell.on('message', (message) => {
+                    console.log('evaluate_translation.py message:', message); // Log para depuração
                     try {
                         const result = JSON.parse(message);
                         resolve(result);
@@ -59,6 +60,7 @@ function createWindow() {
                 });
 
                 pyshell.on('error', (err) => {
+                    console.error('evaluate_translation.py error:', err);
                     reject(err);
                 });
 
@@ -89,9 +91,11 @@ function createWindow() {
                     sourceLang: payload.sourceLang,
                     targetLang: payload.targetLang
                 };
+                console.log('Sending to translate.py:', data); // Log para depuração
                 pyshell.send(JSON.stringify(data));
 
                 pyshell.on('message', (message) => {
+                    console.log('translate.py message:', message); // Log para depuração
                     try {
                         const result = JSON.parse(message);
                         resolve(result);
@@ -101,6 +105,7 @@ function createWindow() {
                 });
 
                 pyshell.on('error', (err) => {
+                    console.error('translate.py error:', err);
                     reject(err);
                 });
 

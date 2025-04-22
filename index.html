@@ -476,6 +476,38 @@
             outline: none;
             border-color: #007bff;
         }
+
+        /* Estilos para o spinner */
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border-radius: 100%;
+            background-color: aqua;
+            display: grid;
+            place-items: center;
+            animation: zoomin 1.5s infinite alternate-reverse;
+            position: relative;
+            margin: 0 auto; /* Centralizar o spinner na célula */
+        }
+
+        .inner {
+            background-color: #212121;
+            width: 80%;
+            height: 80%;
+            border-radius: 100%;
+        }
+
+        @keyframes zoomin {
+            0% {
+                transform: scale(1);
+                box-shadow: 0 0 100px 20px rgb(16, 71, 71);
+            }
+
+            100% {
+                transform: scale(1.5);
+                box-shadow: 0 0 100px 20px #000;
+            }
+        }
     </style>
 </head>
 <body>
@@ -700,11 +732,12 @@
                             targetTuv = tuvs[1];
                         }
 
-                        const sourceSeg = sourceTuv.querySelector(':scope > seg');
-                        const targetSeg = targetTuv.querySelector(':scope > seg');
+                        const sourceSeg = sourceTuv?.querySelector(':scope > seg');
+                        const targetSeg = targetTuv?.querySelector(':scope > seg');
 
-                        const source = sourceSeg ? sourceSeg.textContent.trim() : '';
-                        const target = targetSeg ? targetSeg.textContent.trim() : '';
+                        // Garantir que source e target sejam strings
+                        const source = sourceSeg?.textContent?.trim() || '';
+                        const target = targetSeg?.textContent?.trim() || '';
 
                         if (source || target) {
                             translationsData.push({ source, target });
@@ -728,8 +761,8 @@
                             const segments = unit.getElementsByTagName('segment');
                             for (let j = 0; j < segments.length; j++) {
                                 const segment = segments[j];
-                                const source = segment.querySelector('source')?.textContent.trim() || '';
-                                const target = segment.querySelector('target')?.textContent.trim() || '';
+                                const source = segment.querySelector('source')?.textContent?.trim() || '';
+                                const target = segment.querySelector('target')?.textContent?.trim() || '';
                                 if (source || target) {
                                     translationsData.push({ source, target });
                                 }
@@ -743,8 +776,8 @@
                         }
                         for (let i = 0; i < transUnits.length; i++) {
                             const transUnit = transUnits[i];
-                            const source = transUnit.querySelector('source')?.textContent.trim() || '';
-                            const target = transUnit.querySelector('target')?.textContent.trim() || '';
+                            const source = transUnit.querySelector('source')?.textContent?.trim() || '';
+                            const target = transUnit.querySelector('target')?.textContent?.trim() || '';
                             if (source || target) {
                                 translationsData.push({ source, target });
                             }
@@ -763,21 +796,87 @@
                 sourceHeader.textContent = `Source (${sourceLang})`;
                 targetHeader.textContent = `Target (${targetLang})`;
 
-                renderTableAndRunAI();
+                // Renderizar a tabela inicialmente e iniciar o processamento da IA
+                renderTableInitial();
+                runAIAndUpdateTable();
             } catch (error) {
                 console.error('Erro ao parsear o arquivo:', error);
                 displayError('Erro ao processar o arquivo. Verifique se o formato está correto.');
             }
         }
 
-        async function renderTableAndRunAI() {
+        function renderTableInitial() {
             translationTableBody.innerHTML = '';
 
-            // Extrair os textos para enviar às IAs
-            const sourceTexts = translationsData.map(t => t.source);
-            const targetTexts = translationsData.map(t => t.target);
+            // Renderizar as colunas Source e Target, com placeholders para Ref e QA
+            translationsData.forEach((translation, index) => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${index + 1}</td>
+                    <td>${translation.source}</td>
+                    <td class="target-cell" data-index="${index}">${translation.target}</td>
+                    <td class="ref-cell"><div class="spinner"><div class="inner"></div></div></td>
+                    ${index === 0 ? `<td rowspan="${translationsData.length}" class="qa-cell"><div class="spinner"><div class="inner"></div></div></td>` : ''}
+                `;
+                translationTableBody.appendChild(row);
 
+                const targetCell = row.querySelector('.target-cell');
+                if (targetCell) {
+                    targetCell.addEventListener('click', (e) => {
+                        const currentText = e.target.textContent;
+                        const textarea = document.createElement('textarea');
+                        textarea.value = currentText;
+                        const rowHeight = row.dataset.height || '50';
+                        textarea.style.height = `${rowHeight}px`;
+                        e.target.innerHTML = '';
+                        e.target.appendChild(textarea);
+                        textarea.focus();
+
+                        textarea.addEventListener('blur', async () => {
+                            const newText = textarea.value;
+                            const index = e.target.getAttribute('data-index');
+                            translationsData[index].target = newText;
+                            e.target.textContent = newText;
+                            adjustRowHeights();
+
+                            // Reavaliar após edição
+                            const sourceTexts = translationsData.map(t => t.source).filter(text => typeof text === 'string');
+                            const updatedTargetTexts = translationsData.map(t => t.target).filter(text => typeof text === 'string');
+                            try {
+                                const newEvalResult = await ipcRenderer.invoke('evaluate-translation', sourceTexts, updatedTargetTexts);
+                                const newEvaluationText = newEvalResult.evaluation;
+                                const qaCell = translationTableBody.querySelector('.qa-cell');
+                                qaCell.textContent = newEvaluationText;
+                            } catch (err) {
+                                console.error('Erro ao reavaliar:', err);
+                                displayError('Erro ao reavaliar as traduções.');
+                            }
+                        });
+
+                        textarea.addEventListener('keypress', (event) => {
+                            if (event.key === 'Enter' && !event.shiftKey) {
+                                event.preventDefault();
+                                textarea.blur();
+                            }
+                        });
+                    });
+                }
+            });
+
+            adjustRowHeights();
+        }
+
+        async function runAIAndUpdateTable() {
             try {
+                // Extrair os textos para enviar às IAs, garantindo que sejam strings
+                const sourceTexts = translationsData.map(t => t.source).filter(text => typeof text === 'string');
+                const targetTexts = translationsData.map(t => t.target).filter(text => typeof text === 'string');
+
+                if (sourceTexts.length === 0) {
+                    displayError('Nenhum texto de origem válido para traduzir.');
+                    return;
+                }
+
                 // Chamar a IA de tradução (para a coluna Ref), passando os idiomas
                 const translationResult = await ipcRenderer.invoke('translate-text', {
                     texts: sourceTexts,
@@ -790,59 +889,16 @@
                 const evaluationResult = await ipcRenderer.invoke('evaluate-translation', sourceTexts, targetTexts);
                 const evaluationText = evaluationResult.evaluation;
 
-                // Renderizar a tabela com os resultados das IAs
+                // Atualizar as colunas Ref e QA
+                const rows = translationTableBody.getElementsByTagName('tr');
                 translationsData.forEach((translation, index) => {
-                    const row = document.createElement('tr');
-                    row.innerHTML = `
-                        <td>${index + 1}</td>
-                        <td>${translation.source}</td>
-                        <td class="target-cell" data-index="${index}">${translation.target}</td>
-                        <td>${translatedTexts[index] || 'Erro na tradução'}</td>
-                        ${index === 0 ? `<td rowspan="${translationsData.length}" class="qa-cell">${evaluationText}</td>` : ''}
-                    `;
-                    translationTableBody.appendChild(row);
-
-                    const targetCell = row.querySelector('.target-cell');
-                    if (targetCell) {
-                        targetCell.addEventListener('click', (e) => {
-                            const currentText = e.target.textContent;
-                            const textarea = document.createElement('textarea');
-                            textarea.value = currentText;
-                            const rowHeight = row.dataset.height || '50';
-                            textarea.style.height = `${rowHeight}px`;
-                            e.target.innerHTML = '';
-                            e.target.appendChild(textarea);
-                            textarea.focus();
-
-                            textarea.addEventListener('blur', async () => {
-                                const newText = textarea.value;
-                                const index = e.target.getAttribute('data-index');
-                                translationsData[index].target = newText;
-                                e.target.textContent = newText;
-                                adjustRowHeights();
-
-                                // Reavaliar após edição
-                                const updatedTargetTexts = translationsData.map(t => t.target);
-                                try {
-                                    const newEvalResult = await ipcRenderer.invoke('evaluate-translation', sourceTexts, updatedTargetTexts);
-                                    const newEvaluationText = newEvalResult.evaluation;
-                                    const qaCell = translationTableBody.querySelector('.qa-cell');
-                                    qaCell.textContent = newEvaluationText;
-                                } catch (err) {
-                                    console.error('Erro ao reavaliar:', err);
-                                    displayError('Erro ao reavaliar as traduções.');
-                                }
-                            });
-
-                            textarea.addEventListener('keypress', (event) => {
-                                if (event.key === 'Enter' && !event.shiftKey) {
-                                    event.preventDefault();
-                                    textarea.blur();
-                                }
-                            });
-                        });
-                    }
+                    const row = rows[index];
+                    const refCell = row.querySelector('.ref-cell');
+                    refCell.innerHTML = translatedTexts[index] || 'Erro na tradução';
                 });
+
+                const qaCell = translationTableBody.querySelector('.qa-cell');
+                qaCell.textContent = evaluationText;
 
                 adjustRowHeights();
             } catch (err) {
