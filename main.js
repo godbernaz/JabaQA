@@ -1,4 +1,9 @@
 const { app, BrowserWindow, ipcMain } = require('electron');
+const { PythonShell } = require('python-shell');
+const path = require('path');
+
+// Definir a variável de ambiente para desativar o aviso de symlinks do Hugging Face
+process.env.HF_HUB_DISABLE_SYMLINKS_WARNING = 'true';
 
 function createWindow() {
     const win = new BrowserWindow({
@@ -27,6 +32,85 @@ function createWindow() {
 
     ipcMain.on('close-window', () => {
         win.close();
+    });
+
+    // Listener para avaliar traduções
+    ipcMain.handle('evaluate-translation', async (event, sourceTexts, targetTexts) => {
+        try {
+            return await new Promise((resolve, reject) => {
+                const options = {
+                    mode: 'text',
+                    pythonPath: process.platform === 'win32' ? path.join(__dirname, 'scripts', 'venv', 'Scripts', 'python.exe') : path.join(__dirname, 'scripts', 'venv', 'bin', 'python'),
+                    scriptPath: path.join(__dirname, 'scripts'),
+                };
+
+                const pyshell = new PythonShell('evaluate_translation.py', options);
+
+                const data = { source: sourceTexts, target: targetTexts };
+                pyshell.send(JSON.stringify(data));
+
+                pyshell.on('message', (message) => {
+                    try {
+                        const result = JSON.parse(message);
+                        resolve(result);
+                    } catch (err) {
+                        reject(new Error(`Failed to parse evaluation result: ${err.message}`));
+                    }
+                });
+
+                pyshell.on('error', (err) => {
+                    reject(err);
+                });
+
+                pyshell.end((err) => {
+                    if (err) reject(err);
+                });
+            });
+        } catch (err) {
+            throw new Error(`Failed to evaluate translation: ${err.message}`);
+        }
+    });
+
+    // Listener para traduzir textos
+    ipcMain.handle('translate-text', async (event, payload) => {
+        try {
+            return await new Promise((resolve, reject) => {
+                const options = {
+                    mode: 'text',
+                    pythonPath: process.platform === 'win32' ? path.join(__dirname, 'scripts', 'venv', 'Scripts', 'python.exe') : path.join(__dirname, 'scripts', 'venv', 'bin', 'python'),
+                    scriptPath: path.join(__dirname, 'scripts'),
+                };
+
+                const pyshell = new PythonShell('translate.py', options);
+
+                // Enviar os textos e os idiomas
+                const data = {
+                    source: payload.texts,
+                    sourceLang: payload.sourceLang,
+                    targetLang: payload.targetLang
+                };
+                pyshell.send(JSON.stringify(data));
+
+                pyshell.on('message', (message) => {
+                    try {
+                        const result = JSON.parse(message);
+                        resolve(result);
+                    } catch (err) {
+                        reject(new Error(`Failed to parse translation result: ${err.message}`));
+                    }
+                });
+
+                pyshell.on('error', (err) => {
+                    reject(err);
+                });
+
+                pyshell.end((err) => {
+                    if (err) reject(err);
+                });
+            });
+        } catch (err) {
+            throw new Error(`Failed to translate text: ${err.message}`);
+        }
     });
 }
 

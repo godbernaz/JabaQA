@@ -599,6 +599,8 @@
         const targetHeader = document.getElementById('targetHeader');
 
         let translationsData = [];
+        let sourceLang = 'Unknown'; // Variável global para o idioma de origem
+        let targetLang = 'Unknown'; // Variável global para o idioma de destino
 
         uploadArea.addEventListener('click', () => {
             fileInput.click();
@@ -653,8 +655,8 @@
                 const parser = new DOMParser();
                 const xmlDoc = parser.parseFromString(text, 'text/xml');
                 translationsData = [];
-                let sourceLang = 'Unknown';
-                let targetLang = 'Unknown';
+                sourceLang = 'Unknown'; // Resetar o idioma de origem
+                targetLang = 'Unknown'; // Resetar o idioma de destino
 
                 if (fileName.toLowerCase().endsWith('.tmx')) {
                     const tus = xmlDoc.getElementsByTagName('tu');
@@ -761,58 +763,92 @@
                 sourceHeader.textContent = `Source (${sourceLang})`;
                 targetHeader.textContent = `Target (${targetLang})`;
 
-                renderTable();
-                adjustRowHeights();
+                renderTableAndRunAI();
             } catch (error) {
                 console.error('Erro ao parsear o arquivo:', error);
                 displayError('Erro ao processar o arquivo. Verifique se o formato está correto.');
             }
         }
 
-        function renderTable() {
+        async function renderTableAndRunAI() {
             translationTableBody.innerHTML = '';
-            translationsData.forEach((translation, index) => {
-                const row = document.createElement('tr');
-                row.innerHTML = `
-                    <td>${index + 1}</td>
-                    <td>${translation.source}</td>
-                    <td class="target-cell" data-index="${index}">${translation.target}</td>
-                    <td>Ref Placeholder</td>
-                    ${index === 0 ? '<td rowspan="' + translationsData.length + '" class="qa-cell">AI Evaluation Output Placeholder</td>' : ''}
-                `;
-                translationTableBody.appendChild(row);
 
-                const targetCell = row.querySelector('.target-cell');
-                if (targetCell) {
-                    targetCell.addEventListener('click', (e) => {
-                        const currentText = e.target.textContent;
-                        const textarea = document.createElement('textarea');
-                        textarea.value = currentText;
-                        const rowHeight = row.dataset.height || '50';
-                        textarea.style.height = `${rowHeight}px`;
-                        e.target.innerHTML = '';
-                        e.target.appendChild(textarea);
-                        textarea.focus();
+            // Extrair os textos para enviar às IAs
+            const sourceTexts = translationsData.map(t => t.source);
+            const targetTexts = translationsData.map(t => t.target);
 
-                        textarea.addEventListener('blur', () => {
-                            const newText = textarea.value;
-                            const index = e.target.getAttribute('data-index');
-                            translationsData[index].target = newText;
-                            e.target.textContent = newText;
-                            adjustRowHeights();
+            try {
+                // Chamar a IA de tradução (para a coluna Ref), passando os idiomas
+                const translationResult = await ipcRenderer.invoke('translate-text', {
+                    texts: sourceTexts,
+                    sourceLang: sourceLang,
+                    targetLang: targetLang
+                });
+                const translatedTexts = translationResult.translations;
+
+                // Chamar a IA de avaliação (para a coluna Quality Assurance)
+                const evaluationResult = await ipcRenderer.invoke('evaluate-translation', sourceTexts, targetTexts);
+                const evaluationText = evaluationResult.evaluation;
+
+                // Renderizar a tabela com os resultados das IAs
+                translationsData.forEach((translation, index) => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${index + 1}</td>
+                        <td>${translation.source}</td>
+                        <td class="target-cell" data-index="${index}">${translation.target}</td>
+                        <td>${translatedTexts[index] || 'Erro na tradução'}</td>
+                        ${index === 0 ? `<td rowspan="${translationsData.length}" class="qa-cell">${evaluationText}</td>` : ''}
+                    `;
+                    translationTableBody.appendChild(row);
+
+                    const targetCell = row.querySelector('.target-cell');
+                    if (targetCell) {
+                        targetCell.addEventListener('click', (e) => {
+                            const currentText = e.target.textContent;
+                            const textarea = document.createElement('textarea');
+                            textarea.value = currentText;
+                            const rowHeight = row.dataset.height || '50';
+                            textarea.style.height = `${rowHeight}px`;
+                            e.target.innerHTML = '';
+                            e.target.appendChild(textarea);
+                            textarea.focus();
+
+                            textarea.addEventListener('blur', async () => {
+                                const newText = textarea.value;
+                                const index = e.target.getAttribute('data-index');
+                                translationsData[index].target = newText;
+                                e.target.textContent = newText;
+                                adjustRowHeights();
+
+                                // Reavaliar após edição
+                                const updatedTargetTexts = translationsData.map(t => t.target);
+                                try {
+                                    const newEvalResult = await ipcRenderer.invoke('evaluate-translation', sourceTexts, updatedTargetTexts);
+                                    const newEvaluationText = newEvalResult.evaluation;
+                                    const qaCell = translationTableBody.querySelector('.qa-cell');
+                                    qaCell.textContent = newEvaluationText;
+                                } catch (err) {
+                                    console.error('Erro ao reavaliar:', err);
+                                    displayError('Erro ao reavaliar as traduções.');
+                                }
+                            });
+
+                            textarea.addEventListener('keypress', (event) => {
+                                if (event.key === 'Enter' && !event.shiftKey) {
+                                    event.preventDefault();
+                                    textarea.blur();
+                                }
+                            });
                         });
+                    }
+                });
 
-                        textarea.addEventListener('keypress', (event) => {
-                            if (event.key === 'Enter' && !event.shiftKey) {
-                                event.preventDefault();
-                                textarea.blur();
-                            }
-                        });
-                    });
-                }
-            });
-
-            adjustRowHeights();
+                adjustRowHeights();
+            } catch (err) {
+                console.error('Erro ao executar IAs:', err);
+                displayError('Erro ao processar traduções ou avaliação. Verifique o console para mais detalhes.');
+            }
         }
 
         function displayError(message) {
@@ -850,6 +886,8 @@
             uploadWrapper.style.display = 'flex';
             translationTableBody.innerHTML = '';
             translationsData = [];
+            sourceLang = 'Unknown'; // Resetar o idioma de origem
+            targetLang = 'Unknown'; // Resetar o idioma de destino
             sourceHeader.textContent = 'Source';
             targetHeader.textContent = 'Target';
         }
